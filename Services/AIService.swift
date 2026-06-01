@@ -1,17 +1,15 @@
 import Foundation
 
-/// Serviço de Backend/IA integrado localmente (Serverless approach)
-/// De acordo com o PRD, a app não tem um backend complexo,
-/// comunicando diretamente com uma API de IA (ex: OpenAI, Anthropic, Gemini) 
-/// para manter a app 'Local-First' sem custos mensais de servidores.
+/// Serviço de IA gratuito usando Google Gemini Flash.
+/// Tier gratuito: 15 RPM, 1500 RPD. Sem custos.
+/// Para uso pessoal, o utilizador coloca aqui a sua API key obtida em:
+/// https://aistudio.google.com/app/apikey
 class AIRecipeService {
     static let shared = AIRecipeService()
-    
-    // NOTA: Para uso pessoal, o utilizador pode colocar aqui a sua própria API Key, 
-    // ou podes usar a API da Apple (iOS 18+ Apple Intelligence) no futuro.
-    private let apiKey = "COLOQUE_A_SUA_API_KEY_AQUI" 
-    private let endpoint = "https://api.openai.com/v1/chat/completions"
-    
+
+    private let apiKey = "COLOQUE_A_SUA_API_KEY_AQUI"
+    private let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+
     struct AIResponseFormat: Codable {
         let title: String
         let mealType: String
@@ -23,80 +21,84 @@ class AIRecipeService {
         let ingredientsText: String
         let stepsText: String
     }
-    
+
     enum AIError: Error {
         case invalidURL
         case noData
         case decodingError
         case apiError(String)
     }
-    
+
     func generateRecipe(availableIngredients: [String], dietPreference: String, mealType: String) async throws -> Recipe {
-        guard let url = URL(string: endpoint) else { throw AIError.invalidURL }
-        
+        guard !apiKey.contains("AQUI") else {
+            // Sem chave configurada, devolve receita local mock
+            return mockRecipe(ingredients: availableIngredients, diet: dietPreference, mealType: mealType)
+        }
+
+        guard let url = URL(string: "\(endpoint)?key=\(apiKey)") else { throw AIError.invalidURL }
+
         let prompt = """
-        Atuas como um chef profissional. 
-        Tenho os seguintes ingredientes disponíveis em casa: \(availableIngredients.joined(separator: ", ")).
-        Quero fazer uma refeição do tipo: \(mealType).
-        A minha preferência alimentar é: \(dietPreference).
-        
-        Gera uma receita criativa usando o máximo possível dos meus ingredientes. Podes sugerir ingredientes extra muito básicos (sal, azeite).
-        Responde ESTRITAMENTE num formato JSON válido com as seguintes chaves exatas:
+        Atua como um chef profissional. 
+        Tenho estes ingredientes: \(availableIngredients.joined(separator: ", ")).
+        Refeição: \(mealType). Dieta: \(dietPreference).
+        Cria uma receita criativa usando o máximo possível dos ingredientes. Podes sugerir básicos (sal, azeite).
+        Responde APENAS com JSON válido com estas chaves exatas:
         - "title" (String)
         - "mealType" (String)
         - "dietType" (String)
         - "prepTime" (Int, minutos)
         - "cookTime" (Int, minutos)
-        - "difficulty" (String, ex: "Fácil", "Média")
+        - "difficulty" (String: "Fácil", "Média" ou "Difícil")
         - "calories" (Int)
-        - "ingredientsText" (String, lista formatada com bullet points)
+        - "ingredientsText" (String, lista com bullet points)
         - "stepsText" (String, passos numerados)
         """
-        
+
         let parameters: [String: Any] = [
-            "model": "gpt-4o-mini", // Modelo rápido e barato
-            "messages": [
-                ["role": "system", "content": "You are a helpful culinary assistant that outputs only valid JSON."],
-                ["role": "user", "content": prompt]
+            "contents": [
+                ["parts": [["text": prompt]]]
             ],
-            "response_format": ["type": "json_object"],
-            "temperature": 0.7
+            "generationConfig": [
+                "response_mime_type": "application/json",
+                "temperature": 0.7
+            ]
         ]
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
-        
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw AIError.apiError("Erro de comunicação com a IA.")
+            let err = String(data: data, encoding: .utf8) ?? "sem detalhes"
+            throw AIError.apiError("Erro Gemini: \(err)")
         }
-        
-        // Fazer parsing da resposta do OpenAI
-        struct OpenAIResponse: Codable {
-            struct Choice: Codable {
-                struct Message: Codable {
-                    let content: String
+
+        // Parse resposta do Gemini
+        struct GeminiResponse: Codable {
+            struct Candidate: Codable {
+                struct Content: Codable {
+                    struct Part: Codable {
+                        let text: String
+                    }
+                    let parts: [Part]
                 }
-                let message: Message
+                let content: Content
             }
-            let choices: [Choice]
+            let candidates: [Candidate]
         }
-        
-        let openAIResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
-        guard let jsonString = openAIResponse.choices.first?.message.content,
+
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        guard let jsonString = geminiResponse.candidates.first?.content.parts.first?.text,
               let jsonData = jsonString.data(using: .utf8) else {
             throw AIError.decodingError
         }
-        
-        // Fazer parsing do JSON gerado pela IA para a nossa estrutura
+
         let generatedAI = try JSONDecoder().decode(AIResponseFormat.self, from: jsonData)
-        
-        // Converter para o nosso modelo SwiftData (Recipe)
-        let newRecipe = Recipe(
+
+        return Recipe(
             title: generatedAI.title,
             mealType: generatedAI.mealType,
             dietType: generatedAI.dietType,
@@ -108,7 +110,22 @@ class AIRecipeService {
             calories: generatedAI.calories,
             isFavorite: false
         )
-        
-        return newRecipe
+    }
+
+    /// Receita de fallback quando não há API key configurada
+    private func mockRecipe(ingredients: [String], diet: String, mealType: String) -> Recipe {
+        let title = "Receita com \(ingredients.prefix(2).joined(separator: " e "))"
+        return Recipe(
+            title: title,
+            mealType: mealType,
+            dietType: diet,
+            prepTime: 10,
+            cookTime: 15,
+            difficulty: "Fácil",
+            ingredientsText: ingredients.enumerated().map { "• \($0.element)" }.joined(separator: "\n"),
+            stepsText: "1. Reúne todos os ingredientes.\n2. Prepara e corta.\n3. Cozinha a gosto.\n4. Serve e bom apetite!",
+            calories: 400,
+            isFavorite: false
+        )
     }
 }
