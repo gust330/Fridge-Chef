@@ -106,7 +106,7 @@ struct FridgeView: View {
             .navigationTitle("Inventário")
             .searchable(text: $searchText, prompt: "Pesquisar ingrediente...")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .compatTrailing) {
                     Menu {
                         Section("Ordenar por") {
                             ForEach(SortMode.allCases) { mode in
@@ -117,7 +117,7 @@ struct FridgeView: View {
                         Image(systemName: "arrow.up.arrow.down.circle")
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .compatTrailing) {
                     Button(action: { showAddSheet = true }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -183,7 +183,9 @@ struct IngredientDetailView: View {
                     Text("Qtd")
                     Spacer()
                     TextField("0", value: $ingredient.quantity, format: .number)
+                        #if os(iOS)
                         .keyboardType(.decimalPad)
+                        #endif
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                     TextField("un", text: $ingredient.unit)
