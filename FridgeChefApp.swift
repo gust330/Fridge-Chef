@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
+#if canImport(UIKit)
 import UIKit
+#endif
 
 @main
 struct FridgeChefApp: App {
@@ -27,10 +29,12 @@ struct FridgeChefApp: App {
             await NotificationService.requestAuthorization()
             NotificationService.scheduleDailyReminder()
         }
-        // Aparência padrão da NavigationBar coerente
+        #if canImport(UIKit) && !os(macOS)
+        // Aparência padrão da NavigationBar coerente (apenas iOS/iPadOS)
         UINavigationBar.appearance().largeTitleTextAttributes = [
             .foregroundColor: UIColor.label
         ]
+        #endif
     }
 
     var body: some Scene {
