@@ -2,43 +2,55 @@ import SwiftUI
 
 struct RecipeCardView: View {
     let recipe: Recipe
-    
+    var match: RecipeMatch? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Imagem Placeholder Premium
             ZStack(alignment: .topTrailing) {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 160)
-                    .overlay(
-                        Image(systemName: "photo.fill")
-                            .font(.largeTitle)
-                            .foregroundColor(.gray.opacity(0.5))
-                    )
-                
-                // Favorite Button
-                Button(action: {
-                    // Toggle favorite logic
-                }) {
-                    Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
-                        .foregroundColor(recipe.isFavorite ? .red : .white)
-                        .padding(10)
-                        .background(Color.black.opacity(0.3))
-                        .clipShape(Circle())
+                LinearGradient(
+                    colors: [Color.appGreen.opacity(0.5), Color.appOrange.opacity(0.5)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .frame(height: 150)
+                .overlay(
+                    Image(systemName: "fork.knife.circle.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.white.opacity(0.5))
+                )
+
+                HStack(alignment: .top) {
+                    if let match {
+                        Text("\(Int(match.availablePercent))% disponível")
+                            .font(.caption2).bold()
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(.white.opacity(0.9))
+                            .foregroundColor(.appGreen)
+                            .clipShape(Capsule())
+                    }
+                    Spacer()
+                    Button(action: {
+                        recipe.isFavorite.toggle()
+                        HapticsService.light()
+                    }) {
+                        Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
+                            .foregroundColor(recipe.isFavorite ? .red : .white)
+                            .padding(10)
+                            .background(Color.black.opacity(0.3))
+                            .clipShape(Circle())
+                    }
                 }
                 .padding(12)
             }
-            
-            // Info Section
+
+            // Info
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(recipe.mealType.uppercased())
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.caption).bold()
                         .foregroundColor(.appOrange)
-                    
                     Spacer()
-                    
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
                             .font(.caption)
@@ -48,20 +60,18 @@ struct RecipeCardView: View {
                     }
                     .foregroundColor(.secondary)
                 }
-                
+
                 Text(recipe.title)
-                    .font(.title3)
-                    .fontWeight(.bold)
+                    .font(.title3).bold()
                     .foregroundColor(.primary)
                     .lineLimit(2)
-                
+
                 HStack {
                     BadgeView(text: recipe.dietType, color: .appGreen)
                     if let cals = recipe.calories {
                         BadgeView(text: "\(cals) kcal", color: .gray)
                     }
                 }
-                .padding(.top, 4)
             }
             .padding(16)
             .background(Color.cardBackground)
@@ -74,7 +84,7 @@ struct RecipeCardView: View {
 struct BadgeView: View {
     let text: String
     let color: Color
-    
+
     var body: some View {
         Text(text)
             .font(.caption2)
