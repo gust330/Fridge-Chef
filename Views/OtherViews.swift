@@ -172,13 +172,13 @@ struct ShoppingListView: View {
                             }
                         }
                     }
-                    .compatListStyle()
+                    .listStyle(.insetGrouped)
                 }
             }
             .background(Color.appBackground.ignoresSafeArea())
             .navigationTitle("Compras")
             .toolbar {
-                ToolbarItem(placement: .compatLeading) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         shoppingMode.toggle()
                         HapticsService.medium()
@@ -187,7 +187,7 @@ struct ShoppingListView: View {
                             .foregroundColor(shoppingMode ? .appGreen : .secondary)
                     }
                 }
-                ToolbarItem(placement: .compatTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showAddSheet = true }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -199,7 +199,7 @@ struct ShoppingListView: View {
                 addItemSheet
             }
         }
-        .applyDynamicType(shoppingMode ? .xxLarge : .large)
+        .environment(\.dynamicTypeSize, shoppingMode ? .xxLarge : .large)
     }
 
     @ViewBuilder
@@ -247,9 +247,7 @@ struct ShoppingListView: View {
                     TextField("Nome (ex: Leite)", text: $newName)
                     HStack {
                         TextField("Qtd", value: $newQty, format: .number)
-                            #if os(iOS)
                             .keyboardType(.decimalPad)
-                            #endif
                         Picker("", selection: $newUnit) {
                             ForEach(AppConstants.Unit.all, id: \.self) { Text($0).tag($0) }
                         }

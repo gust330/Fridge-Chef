@@ -1,17 +1,11 @@
 import SwiftUI
-#if canImport(UIKit)
 import UIKit
-#endif
 
 struct AppTheme {
     // Cores Principais baseadas no PRD
     static let primaryGreen = Color("PrimaryGreen") // #34C759
     static let secondaryOrange = Color("SecondaryOrange") // #FF9500
-    #if canImport(UIKit) && !os(macOS)
     static let backgroundLight = Color(UIColor.systemGroupedBackground)
-    #else
-    static let backgroundLight = Color(NSColor.windowBackgroundColor)
-    #endif
 
     // Gradientes
     static let primaryGradient = LinearGradient(
@@ -30,11 +24,6 @@ struct AppTheme {
 extension Color {
     static let appGreen = Color.green
     static let appOrange = Color.orange
-    #if canImport(UIKit) && !os(macOS)
     static let appBackground = Color(UIColor.systemGroupedBackground)
     static let cardBackground = Color(UIColor.secondarySystemGroupedBackground)
-    #else
-    static let appBackground = Color(NSColor.windowBackgroundColor)
-    static let cardBackground = Color(NSColor.controlBackgroundColor)
-    #endif
 }

@@ -21,16 +21,12 @@ struct AddIngredientView: View {
             Form {
                 Section("Identificação") {
                     TextField("Nome (ex: Tomates)", text: $name)
-                        #if os(iOS)
                         .textInputAutocapitalization(.words)
-                        #endif
                     HStack {
                         Text("Qtd")
                         Spacer()
                         TextField("0", value: $quantity, format: .number)
-                            #if os(iOS)
                             .keyboardType(.decimalPad)
-                            #endif
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
                         Picker("", selection: $unit) {

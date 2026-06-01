@@ -133,7 +133,7 @@ struct HomeView: View {
                 }
             }
             .background(Color.appBackground.ignoresSafeArea())
-            .hideNavigationBar()
+            .navigationBarHidden(true)
             .sheet(isPresented: $showAIGenerator) { AIRecipeGeneratorView() }
             .sheet(isPresented: $showAddIngredient) { AddIngredientView() }
         }
